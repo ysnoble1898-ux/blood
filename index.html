@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수혈 체크리스트</title>
+<style>
+  :root{
+    --navy:#1f3a5f;
+    --navy-light:#2e5283;
+    --line:#d8dee6;
+    --bg:#f4f6f9;
+    --row-alt:#f8fafc;
+    --accent:#c0392b;
+    --ok:#2e7d32;
+    --text:#27313f;
+    --patient-bg:#eaf0f7;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);margin:0;padding:20px;color:var(--text);font-size:12px;}
+  .wrap{max-width:1750px;margin:0 auto;}
+
+  /* 헤더 */
+  .page-header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid var(--navy);padding-bottom:8px;margin-bottom:14px;}
+  .page-header h1{font-size:18px;margin:0;color:var(--navy);}
+  .save-status{font-size:12px;color:var(--ok);}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:14px;}
+
+  /* 상단 툴바 */
+  .toolbar-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .toolbar-row label{font-weight:bold;color:var(--navy);font-size:12px;white-space:nowrap;}
+  .toolbar-row select, .toolbar-row input{padding:6px 8px;border:1px solid var(--line);border-radius:4px;font-size:12px;}
+  .btn{border:none;border-radius:5px;padding:8px 14px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap;}
+  .btn-navy{background:var(--navy);color:#fff;}         .btn-navy:hover{background:var(--navy-light);}
+  .btn-red{background:var(--accent);color:#fff;}        .btn-red:hover{background:#a8311f;}
+  .btn-green{background:#2e7d32;color:#fff;}            .btn-green:hover{background:#1b5e20;}
+  .btn-outline{background:#fff;color:var(--navy);border:1px solid var(--navy);}  .btn-outline:hover{background:#eaf2ff;}
+  .btn-gray{background:#7d8a99;color:#fff;}             .btn-gray:hover{background:#5a6472;}
+
+  /* 메인 테이블 */
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  thead th{background:var(--navy);color:#fff;padding:7px 3px;font-size:11px;text-align:center;border:1px solid var(--navy-light);white-space:nowrap;}
+  tbody td{border:1px solid var(--line);padding:3px;text-align:center;vertical-align:middle;}
+  td input[type="date"],td input[type="time"],td input[type="number"],td input[type="text"],td select{
+    width:100%;border:1px solid var(--line);border-radius:4px;padding:4px 3px;font-size:11px;text-align:center;
+  }
+  td .unit-wrap{display:flex;align-items:center;gap:2px;}
+  td .unit-wrap input{flex:1;}
+  td .unit-wrap span{font-size:10px;color:#777;}
+  td .radio-group{display:flex;justify-content:center;gap:5px;font-size:11px;white-space:nowrap;}
+  td .radio-group label{display:flex;align-items:center;gap:2px;}
+  tr.patient-first td{border-top:2px solid var(--navy);}
+  tr.patient-first td.basic-cell{background:var(--patient-bg);}
+  .num-cell{font-weight:bold;color:var(--navy);background:#eef3fa;}
+  .btn-stack{display:flex;flex-direction:column;gap:3px;align-items:stretch;}
+  .btn-mini{border:none;border-radius:4px;padding:5px 7px;font-size:11px;cursor:pointer;color:#fff;white-space:nowrap;}
+  .btn-add-line{background:var(--navy-light);}   .btn-add-line:hover{background:var(--navy);}
+  .btn-del-line{background:#7d8a99;}              .btn-del-line:hover{background:var(--accent);}
+  .btn-del-patient{background:var(--accent);}     .btn-del-patient:hover{background:#a8311f;}
+
+  /* 하단 바 */
+  .bottom-bar{display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px;}
+  .right-buttons{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ===== 모달 공통 ===== */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;justify-content:center;align-items:flex-start;padding-top:60px;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.2);width:92%;max-width:1300px;max-height:80vh;display:flex;flex-direction:column;}
+  .modal-header{background:var(--navy);color:#fff;padding:14px 18px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;}
+  .modal-header h2{margin:0;font-size:15px;}
+  .modal-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+  .modal-body{padding:16px;overflow-y:auto;flex:1;}
+  .modal-footer{padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+
+  /* 검색 모달 필터 */
+  .search-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line);}
+  .search-filters label{font-weight:bold;color:var(--navy);font-size:12px;}
+  .search-filters select,.search-filters input{padding:6px 8px;border:1px solid var(--line);border-radius:4px;font-size:12px;}
+
+  /* 저장 목록 모달 테이블 */
+  .rec-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .rec-table th,.rec-table td{border:1px solid var(--line);padding:7px 6px;text-align:center;}
+  .rec-table th{background:var(--navy);color:#fff;white-space:nowrap;}
+  .rec-table tr:nth-child(even){background:var(--row-alt);}
+  .rec-table tr:hover{background:#eef3fa;}
+  .link-btn{color:var(--navy);cursor:pointer;text-decoration:underline;background:none;border:none;font-size:12px;padding:0;}
+  .link-btn:hover{color:var(--accent);}
+  .empty-msg{text-align:center;padding:20px;color:#999;}
+
+  /* 검색 결과 미리보기 테이블 */
+  .result-table{width:100%;border-collapse:collapse;font-size:11px;}
+  .result-table th,.result-table td{border:1px solid var(--line);padding:5px 3px;text-align:center;}
+  .result-table th{background:var(--navy);color:#fff;white-space:nowrap;}
+  .result-table tr.r-first td{border-top:2px solid var(--navy);}
+  .result-table tr.r-first td.bc{background:var(--patient-bg);}
+  .stat-bar{display:flex;gap:16px;margin-bottom:12px;font-size:12px;flex-wrap:wrap;}
+  .stat-item{background:#eef3fa;border:1px solid var(--line);border-radius:6px;padding:8px 14px;}
+  .stat-item b{color:var(--navy);}
+
+  /* 인쇄 */
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea,#printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;left:0;top:0;width:100%;padding:10px;}
+    .p-title{font-size:15px;font-weight:bold;color:#1f3a5f;border-bottom:3px solid #1f3a5f;padding-bottom:6px;margin-bottom:10px;}
+    .p-subtitle{font-size:12px;color:#555;margin-bottom:8px;}
+    .p-table{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed;}
+    .p-table th,.p-table td{border:1px solid #999;padding:4px 2px;text-align:center;word-break:break-all;}
+    .p-table th{background:#1f3a5f !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .p-table tr.r-first td{border-top:2px solid #1f3a5f;}
+    .p-table tr.r-first td.bc{background:#eaf0f7 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-weight:bold;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 페이지 헤더 -->
+  <div class="page-header">
+    <h1>수혈 체크리스트</h1>
+    <span class="save-status" id="saveStatus">저장됨</span>
+  </div>
+
+  <!-- 상단 툴바 -->
+  <div class="panel">
+    <div class="toolbar-row">
+      <button class="btn btn-green" id="btnSaveRecord">💾 현재 데이터 저장</button>
+      <button class="btn btn-navy" id="btnOpenSavedList">📋 저장 목록</button>
+      <div style="flex:1;"></div>
+      <button class="btn btn-navy" id="btnOpenSearch">🔍 월별 / 분기별 검색</button>
+      <button class="btn btn-red" id="btnPrintAll">🖨 전체 인쇄 / PDF</button>
+    </div>
+  </div>
+
+  <!-- 입력 테이블 -->
+  <div class="panel">
+    <div class="table-scroll">
+      <table>
+        <colgroup>
+          <col style="width:88px;"><col style="width:88px;"><col style="width:85px;"><col style="width:92px;">
+          <col style="width:92px;"><col style="width:92px;"><col style="width:130px;">
+          <col style="width:34px;">
+          <col style="width:92px;"><col style="width:72px;"><col style="width:78px;">
+          <col style="width:118px;"><col style="width:88px;"><col style="width:72px;"><col style="width:78px;">
+          <col style="width:108px;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>병동</th><th>환자성명</th><th>차트번호</th><th>생년월일</th><th>입원일자</th><th>퇴원일자</th><th>수혈정보</th>
+            <th>번호</th>
+            <th>수혈처방일</th><th>처방시간</th><th>처방량(unit)</th>
+            <th>체크리스트<br>사용여부</th><th>수혈시작일</th><th>시작시간</th><th>수혈량(unit)</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="rowsBody"></tbody>
+      </table>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn btn-navy" id="addPatientBtn">+ 입력 추가 (새 환자)</button>
+      <div class="right-buttons">
+        <button class="btn btn-outline" id="exportBtn">JSON 내보내기</button>
+        <button class="btn btn-gray" id="resetBtn">현재 초기화</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== 저장 목록 모달 ===== -->
+<div class="modal-overlay" id="modalSavedList">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📋 저장 목록</h2>
+      <button class="modal-close" data-close="modalSavedList">✕</button>
+    </div>
+    <div class="modal-body">
+      <table class="rec-table" id="savedListTable">
+        <thead>
+          <tr>
+            <th>번호</th><th>저장 제목 (저장일시)</th><th>환자 수</th><th>입력 행 수</th><th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="savedListBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" data-close="modalSavedList">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 월별/분기별 검색 모달 ===== -->
+<div class="modal-overlay" id="modalSearch">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🔍 월별 / 분기별 검색</h2>
+      <button class="modal-close" data-close="modalSearch">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="search-filters">
+        <label>검색 범위</label>
+        <select id="searchSource">
+          <option value="current">현재 입력 데이터</option>
+          <option value="saved">저장 목록에서 검색</option>
+        </select>
+
+        <label>구분</label>
+        <select id="searchType">
+          <option value="month">월별</option>
+          <option value="quarter">분기별</option>
+        </select>
+
+        <select id="searchYear"><!-- JS 생성 --></select>
+
+        <select id="searchMonth" style="display:none;">
+          <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
+          <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
+          <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
+          <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+        </select>
+
+        <select id="searchQuarter" style="display:none;">
+          <option value="1">1분기 (1~3월)</option>
+          <option value="2">2분기 (4~6월)</option>
+          <option value="3">3분기 (7~9월)</option>
+          <option value="4">4분기 (10~12월)</option>
+        </select>
+
+        <label>기준</label>
+        <select id="searchField">
+          <option value="admitDate">입원일자</option>
+          <option value="orderDate">수혈처방일</option>
+        </select>
+
+        <button class="btn btn-navy" id="btnDoSearch">검색</button>
+      </div>
+
+      <!-- 통계 -->
+      <div class="stat-bar" id="statBar" style="display:none;"></div>
+
+      <!-- 결과 테이블 -->
+      <div id="searchResultArea"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-red" id="btnPrintSearch" style="display:none;">🖨 검색 결과 인쇄 / PDF</button>
+      <button class="btn btn-gray" data-close="modalSearch">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 인쇄 영역 -->
+<div id="printArea"></div>
+
+<script>
+/* =====================================================
+   데이터 모델
+   currentPatients : 현재 편집 중인 환자 배열 (자동저장)
+   savedRecords    : 수동 저장된 스냅샷 배열
+   ===================================================== */
+const KEY_CURRENT = "tcl_current_v2";
+const KEY_SAVED   = "tcl_saved_v2";
+
+const WARD_OPTIONS = ["집중치료실","3병동","5병동","호스피스"];
+
+let currentPatients = [];
+let savedRecords    = [];   // [{id, title, savedAt, patients:[...]}]
+
+/* ---- 빈 객체 ---- */
+function emptyRow(){
+  return {orderDate:"",orderTime:"",orderAmount:"",checklistUsed:"",startDate:"",startTime:"",amount:""};
+}
+function emptyPatient(){
+  return {
+    id:"p"+Date.now()+Math.random().toString(36).slice(2,6),
+    ward:"집중치료실",patientName:"",chartNo:"",birthDate:"",admitDate:"",dischargeDate:"",bloodType:"",
+    checklist:[emptyRow()]
+  };
+}
+
+/* ---- 저장/로드 ---- */
+let autoSaveTimer=null;
+function scheduleSave(){
+  const el=document.getElementById("saveStatus");
+  el.textContent="저장 중..."; el.style.color="#e67e22";
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>{
+    localStorage.setItem(KEY_CURRENT, JSON.stringify(currentPatients));
+    el.textContent="자동저장됨"; el.style.color="#2e7d32";
+  },300);
+}
+
+function loadAll(){
+  try{ const r=JSON.parse(localStorage.getItem(KEY_CURRENT)||"null"); if(Array.isArray(r)&&r.length) currentPatients=r; }catch(e){}
+  try{ const r=JSON.parse(localStorage.getItem(KEY_SAVED)||"null"); if(Array.isArray(r)) savedRecords=r; }catch(e){}
+  if(!currentPatients.length) currentPatients=[emptyPatient()];
+}
+
+function saveSavedRecords(){
+  localStorage.setItem(KEY_SAVED, JSON.stringify(savedRecords));
+}
+
+/* =====================================================
+   렌더링: 입력 테이블
+   ===================================================== */
+function render(){
+  const body=document.getElementById("rowsBody");
+  body.innerHTML="";
+  currentPatients.forEach((p,pIdx)=>{
+    p.checklist.forEach((row,rIdx)=>{
+      const tr=document.createElement("tr");
+      tr.className=rIdx===0?"patient-first":"";
+
+      if(rIdx===0) appendBasicCells(tr,p,p.checklist.length);
+
+      // 번호
+      const tn=document.createElement("td"); tn.className="num-cell"; tn.textContent=rIdx+1; tr.appendChild(tn);
+
+      // 체크리스트 셀
+      tr.appendChild(mkInput("date",row.orderDate,v=>{row.orderDate=v;}));
+      tr.appendChild(mkInput("time",row.orderTime,v=>{row.orderTime=v;}));
+      tr.appendChild(mkUnit(row.orderAmount,v=>{row.orderAmount=v;}));
+      tr.appendChild(mkRadio(row,p.id+"_"+rIdx));
+      tr.appendChild(mkInput("date",row.startDate,v=>{row.startDate=v;}));
+      tr.appendChild(mkInput("time",row.startTime,v=>{row.startTime=v;}));
+      tr.appendChild(mkUnit(row.amount,v=>{row.amount=v;}));
+
+      // 관리
+      const tm=document.createElement("td");
+      const st=document.createElement("div"); st.className="btn-stack";
+
+      const ba=document.createElement("button"); ba.className="btn-mini btn-add-line"; ba.textContent="+ 행 추가";
+      ba.onclick=()=>{ p.checklist.splice(rIdx+1,0,emptyRow()); scheduleSave(); render(); };
+      st.appendChild(ba);
+
+      if(p.checklist.length>1){
+        const bd=document.createElement("button"); bd.className="btn-mini btn-del-line"; bd.textContent="행 삭제";
+        bd.onclick=()=>{ p.checklist.splice(rIdx,1); scheduleSave(); render(); };
+        st.appendChild(bd);
+      }
+      if(rIdx===0&&currentPatients.length>1){
+        const bp=document.createElement("button"); bp.className="btn-mini btn-del-patient"; bp.textContent="환자 삭제";
+        bp.onclick=()=>{ if(!confirm((p.patientName||"이름없음")+" 환자를 삭제하시겠습니까?")) return; currentPatients.splice(pIdx,1); scheduleSave(); render(); };
+        st.appendChild(bp);
+      }
+      tm.appendChild(st); tr.appendChild(tm);
+      body.appendChild(tr);
+    });
+  });
+}
+
+function appendBasicCells(tr,p,rs){
+  // 병동
+  const td0=document.createElement("td"); td0.className="basic-cell"; td0.rowSpan=rs;
+  const sel=document.createElement("select");
+  WARD_OPTIONS.forEach(w=>{ const o=document.createElement("option"); o.value=w; o.textContent=w; if(w===p.ward)o.selected=true; sel.appendChild(o); });
+  sel.onchange=()=>{ p.ward=sel.value; scheduleSave(); };
+  td0.appendChild(sel); tr.appendChild(td0);
+
+  [["text",p.patientName,v=>p.patientName=v,"환자성명"],
+   ["text",p.chartNo,v=>p.chartNo=v,"차트번호"],
+   ["date",p.birthDate,v=>p.birthDate=v,null],
+   ["date",p.admitDate,v=>p.admitDate=v,null],
+   ["date",p.dischargeDate,v=>p.dischargeDate=v,null]
+  ].forEach(([type,val,cb,ph])=>{
+    const td=document.createElement("td"); td.className="basic-cell"; td.rowSpan=rs;
+    const inp=document.createElement("input"); inp.type=type; inp.value=val||""; if(ph)inp.placeholder=ph;
+    inp.oninput=()=>{ cb(inp.value); scheduleSave(); };
+    td.appendChild(inp); tr.appendChild(td);
+  });
+
+  // 수혈정보
+  const tdb=document.createElement("td"); tdb.className="basic-cell"; tdb.rowSpan=rs;
+  const grp=document.createElement("div"); grp.className="radio-group"; grp.style.flexDirection="column"; grp.style.alignItems="flex-start"; grp.style.gap="2px";
+  [["RBC","① RBC"],["기타혈액제제","② 그외"]].forEach(([val,label])=>{
+    const lbl=document.createElement("label");
+    const r=document.createElement("input"); r.type="radio"; r.name="blood_"+p.id; r.value=val;
+    if(p.bloodType===val) r.checked=true;
+    r.onchange=()=>{ p.bloodType=val; scheduleSave(); };
+    lbl.appendChild(r); lbl.appendChild(document.createTextNode(label));
+    grp.appendChild(lbl);
+  });
+  tdb.appendChild(grp); tr.appendChild(tdb);
+}
+
+function mkInput(type,val,cb){
+  const td=document.createElement("td");
+  const inp=document.createElement("input"); inp.type=type; inp.value=val||"";
+  inp.oninput=()=>{ cb(inp.value); scheduleSave(); };
+  td.appendChild(inp); return td;
+}
+function mkUnit(val,cb){
+  const td=document.createElement("td");
+  const w=document.createElement("div"); w.className="unit-wrap";
+  const inp=document.createElement("input"); inp.type="number"; inp.min="0"; inp.step="0.1"; inp.value=val||"";
+  inp.oninput=()=>{ cb(inp.value); scheduleSave(); };
+  const sp=document.createElement("span"); sp.textContent="unit";
+  w.appendChild(inp); w.appendChild(sp); td.appendChild(w); return td;
+}
+function mkRadio(row,name){
+  const td=document.createElement("td");
+  const g=document.createElement("div"); g.className="radio-group";
+  [["yes","예"],["no","아니오"]].forEach(([val,label])=>{
+    const lbl=document.createElement("label");
+    const r=document.createElement("input"); r.type="radio"; r.name="cl_"+name; r.value=val;
+    if(row.checklistUsed===val) r.checked=true;
+    r.onchange=()=>{ row.checklistUsed=val; scheduleSave(); };
+    lbl.appendChild(r); lbl.appendChild(document.createTextNode(label));
+    g.appendChild(lbl);
+  });
+  td.appendChild(g); return td;
+}
+
+/* =====================================================
+   수동 저장
+   ===================================================== */
+document.getElementById("btnSaveRecord").onclick=()=>{
+  if(!currentPatients.some(p=>p.patientName)){
+    alert("환자성명을 하나 이상 입력해주세요."); return;
+  }
+  const now=new Date();
+  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  const title=`${fmt(now)} 저장 (${currentPatients.filter(p=>p.patientName).length}명)`;
+  savedRecords.unshift({
+    id:"s"+Date.now(),
+    title,
+    savedAt:now.toISOString(),
+    patients:JSON.parse(JSON.stringify(currentPatients))
+  });
+  saveSavedRecords();
+  alert("저장되었습니다.");
+};
+
+/* =====================================================
+   저장 목록 모달
+   ===================================================== */
+document.getElementById("btnOpenSavedList").onclick=()=>{
+  renderSavedList();
+  openModal("modalSavedList");
+};
+
+function renderSavedList(){
+  const body=document.getElementById("savedListBody");
+  body.innerHTML="";
+  if(!savedRecords.length){
+    body.innerHTML=`<tr><td colspan="5" class="empty-msg">저장된 기록이 없습니다.</td></tr>`; return;
+  }
+  savedRecords.forEach((rec,idx)=>{
+    const tr=document.createElement("tr");
+    const totalRows=rec.patients.reduce((s,p)=>s+p.checklist.length,0);
+    tr.innerHTML=`<td>${savedRecords.length-idx}</td><td style="text-align:left">${rec.title}</td><td>${rec.patients.length}</td><td>${totalRows}</td>`;
+    const td=document.createElement("td");
+    const btnLoad=document.createElement("button"); btnLoad.className="link-btn"; btnLoad.textContent="불러오기";
+    btnLoad.onclick=()=>{
+      if(!confirm("현재 입력 데이터를 이 기록으로 교체하시겠습니까?")) return;
+      currentPatients=JSON.parse(JSON.stringify(rec.patients));
+      scheduleSave(); render(); closeModal("modalSavedList");
+    };
+    const btnPrint=document.createElement("button"); btnPrint.className="link-btn"; btnPrint.style.marginLeft="8px"; btnPrint.textContent="인쇄";
+    btnPrint.onclick=()=>{ printPatients(rec.patients, rec.title); };
+    const btnDel=document.createElement("button"); btnDel.className="link-btn"; btnDel.style.marginLeft="8px"; btnDel.style.color="var(--accent)"; btnDel.textContent="삭제";
+    btnDel.onclick=()=>{
+      if(!confirm("이 저장 기록을 삭제하시겠습니까?")) return;
+      savedRecords.splice(idx,1); saveSavedRecords(); renderSavedList();
+    };
+    td.appendChild(btnLoad); td.appendChild(btnPrint); td.appendChild(btnDel);
+    tr.appendChild(td); body.appendChild(tr);
+  });
+}
+
+/* =====================================================
+   월별/분기별 검색 모달
+   ===================================================== */
+// 연도 드롭다운 생성
+(()=>{
+  const sel=document.getElementById("searchYear");
+  const y=new Date().getFullYear();
+  for(let i=y+1;i>=y-5;i--){
+    const o=document.createElement("option"); o.value=i; o.textContent=i+"년";
+    if(i===y) o.selected=true;
+    sel.appendChild(o);
+  }
+})();
+
+document.getElementById("searchType").onchange=()=>{
+  const t=document.getElementById("searchType").value;
+  document.getElementById("searchMonth").style.display=(t==="month")?"inline-block":"none";
+  document.getElementById("searchQuarter").style.display=(t==="quarter")?"inline-block":"none";
+};
+// 기본 월 표시
+document.getElementById("searchMonth").style.display="inline-block";
+// 현재 월 선택
+document.getElementById("searchMonth").value=String(new Date().getMonth()+1).padStart(2,"0");
+
+document.getElementById("btnOpenSearch").onclick=()=>{ openModal("modalSearch"); };
+
+document.getElementById("btnDoSearch").onclick=()=>{
+  const source=document.getElementById("searchSource").value;
+  const type=document.getElementById("searchType").value;
+  const year=document.getElementById("searchYear").value;
+  const month=document.getElementById("searchMonth").value;
+  const quarter=parseInt(document.getElementById("searchQuarter").value);
+  const field=document.getElementById("searchField").value;
+
+  // 검색 대상 환자 풀
+  let pool=[];
+  if(source==="current"){
+    pool=currentPatients;
+  } else {
+    // 저장 목록의 모든 환자 합치기
+    savedRecords.forEach(rec=>pool.push(...rec.patients));
+  }
+
+  // 날짜 범위 계산
+  let fromDate,toDate;
+  if(type==="month"){
+    fromDate=`${year}-${month}-01`;
+    const lastDay=new Date(parseInt(year),parseInt(month),0).getDate();
+    toDate=`${year}-${month}-${String(lastDay).padStart(2,"0")}`;
+  } else {
+    const qMonths=[[1,3],[4,6],[7,9],[10,12]][quarter-1];
+    fromDate=`${year}-${String(qMonths[0]).padStart(2,"0")}-01`;
+    const lastDay=new Date(parseInt(year),qMonths[1],0).getDate();
+    toDate=`${year}-${String(qMonths[1]).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+  }
+
+  // 필터링: 환자 단위 (기본정보 field) 또는 체크리스트 행 단위 (orderDate)
+  const matched=[];
+  pool.forEach(p=>{
+    if(field==="admitDate"){
+      const d=p.admitDate||"";
+      if(d>=fromDate&&d<=toDate) matched.push({patient:p,rows:p.checklist});
+    } else {
+      const rows=p.checklist.filter(r=>{
+        const d=r.orderDate||"";
+        return d>=fromDate&&d<=toDate;
+      });
+      if(rows.length) matched.push({patient:p,rows});
+    }
+  });
+
+  // 통계
+  const totalPatients=matched.length;
+  const totalRows=matched.reduce((s,m)=>s+m.rows.length,0);
+  const usedYes=matched.reduce((s,m)=>s+m.rows.filter(r=>r.checklistUsed==="yes").length,0);
+  const usedNo=matched.reduce((s,m)=>s+m.rows.filter(r=>r.checklistUsed==="no").length,0);
+  const rbcCount=matched.filter(m=>m.patient.bloodType==="RBC").length;
+
+  const label=type==="month"?`${year}년 ${parseInt(month)}월`:`${year}년 ${quarter}분기`;
+
+  const statBar=document.getElementById("statBar");
+  statBar.style.display="flex";
+  statBar.innerHTML=`
+    <div class="stat-item"><b>${label}</b> 검색결과</div>
+    <div class="stat-item">환자 수 <b>${totalPatients}</b>명</div>
+    <div class="stat-item">수혈 건수 <b>${totalRows}</b>건</div>
+    <div class="stat-item">체크리스트 사용 <b>${usedYes}</b>건 / 미사용 <b>${usedNo}</b>건</div>
+    <div class="stat-item">RBC <b>${rbcCount}</b>명</div>
+  `;
+
+  // 결과 테이블
+  const area=document.getElementById("searchResultArea");
+  if(!matched.length){
+    area.innerHTML=`<div class="empty-msg">해당 기간에 해당하는 데이터가 없습니다.</div>`;
+    document.getElementById("btnPrintSearch").style.display="none";
+    return;
+  }
+
+  let html=`<table class="result-table"><thead><tr>
+    <th>병동</th><th>환자성명</th><th>차트번호</th><th>생년월일</th><th>입원일자</th><th>퇴원일자</th><th>수혈정보</th>
+    <th>번호</th><th>수혈처방일</th><th>처방시간</th><th>처방량</th><th>체크리스트<br>사용여부</th><th>수혈시작일</th><th>시작시간</th><th>수혈량</th>
+  </tr></thead><tbody>`;
+
+  matched.forEach(({patient:p,rows})=>{
+    rows.forEach((row,rIdx)=>{
+      const isF=rIdx===0;
+      const rs=rows.length;
+      html+=`<tr class="${isF?"r-first":""}">`;
+      if(isF){
+        html+=`
+          <td class="bc" rowspan="${rs}">${p.ward||"-"}</td>
+          <td class="bc" rowspan="${rs}">${p.patientName||"-"}</td>
+          <td class="bc" rowspan="${rs}">${p.chartNo||"-"}</td>
+          <td class="bc" rowspan="${rs}">${p.birthDate||"-"}</td>
+          <td class="bc" rowspan="${rs}">${p.admitDate||"-"}</td>
+          <td class="bc" rowspan="${rs}">${p.dischargeDate||"-"}</td>
+          <td class="bc" rowspan="${rs}">${p.bloodType==="RBC"?"① RBC":p.bloodType==="기타혈액제제"?"② 그외":"-"}</td>`;
+      }
+      html+=`
+        <td>${rIdx+1}</td>
+        <td>${row.orderDate||"-"}</td><td>${row.orderTime||"-"}</td><td>${row.orderAmount||"-"}</td>
+        <td>${row.checklistUsed==="yes"?"예":row.checklistUsed==="no"?"아니오":"-"}</td>
+        <td>${row.startDate||"-"}</td><td>${row.startTime||"-"}</td><td>${row.amount||"-"}</td>
+      </tr>`;
+    });
+  });
+  html+=`</tbody></table>`;
+  area.innerHTML=html;
+
+  // 인쇄 버튼 표시 + 데이터 보관
+  const printBtn=document.getElementById("btnPrintSearch");
+  printBtn.style.display="inline-block";
+  printBtn.onclick=()=>{ printSearchResult(matched, label, {totalPatients,totalRows,usedYes,usedNo,rbcCount}); };
+};
+
+/* =====================================================
+   인쇄 공통
+   ===================================================== */
+function bloodLabel(v){ return v==="RBC"?"① RBC":v==="기타혈액제제"?"② 그외":"-"; }
+function clLabel(v){ return v==="yes"?"예":v==="no"?"아니오":"-"; }
+
+function printPatients(pList, title){
+  let rows="";
+  pList.forEach(p=>{
+    p.checklist.forEach((row,rIdx)=>{
+      const isF=rIdx===0, rs=p.checklist.length;
+      rows+=`<tr class="${isF?"r-first":""}">`;
+      if(isF) rows+=`
+        <td class="bc" rowspan="${rs}">${p.ward||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.patientName||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.chartNo||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.birthDate||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.admitDate||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.dischargeDate||"-"}</td>
+        <td class="bc" rowspan="${rs}">${bloodLabel(p.bloodType)}</td>`;
+      rows+=`<td>${rIdx+1}</td><td>${row.orderDate||"-"}</td><td>${row.orderTime||"-"}</td>
+        <td>${row.orderAmount||"-"}</td><td>${clLabel(row.checklistUsed)}</td>
+        <td>${row.startDate||"-"}</td><td>${row.startTime||"-"}</td><td>${row.amount||"-"}</td></tr>`;
+    });
+  });
+  document.getElementById("printArea").innerHTML=`
+    <div class="p-title">수혈 체크리스트</div>
+    <div class="p-subtitle">${title}</div>
+    <table class="p-table"><thead><tr>
+      <th>병동</th><th>환자성명</th><th>차트번호</th><th>생년월일</th><th>입원일자</th><th>퇴원일자</th><th>수혈정보</th>
+      <th>번호</th><th>수혈처방일</th><th>처방시간</th><th>처방량</th><th>체크리스트<br>사용여부</th><th>수혈시작일</th><th>시작시간</th><th>수혈량</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+}
+
+function printSearchResult(matched, label, stats){
+  let rows="";
+  matched.forEach(({patient:p,rows:rlist})=>{
+    rlist.forEach((row,rIdx)=>{
+      const isF=rIdx===0, rs=rlist.length;
+      rows+=`<tr class="${isF?"r-first":""}">`;
+      if(isF) rows+=`
+        <td class="bc" rowspan="${rs}">${p.ward||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.patientName||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.chartNo||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.birthDate||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.admitDate||"-"}</td>
+        <td class="bc" rowspan="${rs}">${p.dischargeDate||"-"}</td>
+        <td class="bc" rowspan="${rs}">${bloodLabel(p.bloodType)}</td>`;
+      rows+=`<td>${rIdx+1}</td><td>${row.orderDate||"-"}</td><td>${row.orderTime||"-"}</td>
+        <td>${row.orderAmount||"-"}</td><td>${clLabel(row.checklistUsed)}</td>
+        <td>${row.startDate||"-"}</td><td>${row.startTime||"-"}</td><td>${row.amount||"-"}</td></tr>`;
+    });
+  });
+  document.getElementById("printArea").innerHTML=`
+    <div class="p-title">수혈 체크리스트 — ${label} 검색 결과</div>
+    <div class="p-subtitle" style="display:flex;gap:16px;margin-bottom:8px;font-size:11px;">
+      <span>환자 ${stats.totalPatients}명</span>
+      <span>수혈 ${stats.totalRows}건</span>
+      <span>체크리스트 사용 ${stats.usedYes}건 / 미사용 ${stats.usedNo}건</span>
+      <span>RBC ${stats.rbcCount}명</span>
+    </div>
+    <table class="p-table"><thead><tr>
+      <th>병동</th><th>환자성명</th><th>차트번호</th><th>생년월일</th><th>입원일자</th><th>퇴원일자</th><th>수혈정보</th>
+      <th>번호</th><th>수혈처방일</th><th>처방시간</th><th>처방량</th><th>체크리스트<br>사용여부</th><th>수혈시작일</th><th>시작시간</th><th>수혈량</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  window.print();
+}
+
+/* =====================================================
+   기타 버튼
+   ===================================================== */
+document.getElementById("addPatientBtn").onclick=()=>{
+  currentPatients.push(emptyPatient()); scheduleSave(); render();
+  setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}),50);
+};
+
+document.getElementById("resetBtn").onclick=()=>{
+  if(!confirm("현재 입력 데이터를 모두 초기화하시겠습니까?")) return;
+  currentPatients=[emptyPatient()]; scheduleSave(); render();
+};
+
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(currentPatients,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`수혈체크리스트_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+};
+
+document.getElementById("btnPrintAll").onclick=()=>{
+  printPatients(currentPatients,"전체");
+};
+
+/* =====================================================
+   모달 공통
+   ===================================================== */
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+
+document.querySelectorAll("[data-close]").forEach(btn=>{
+  btn.onclick=()=>closeModal(btn.dataset.close);
+});
+document.querySelectorAll(".modal-overlay").forEach(ov=>{
+  ov.addEventListener("click",e=>{ if(e.target===ov) ov.classList.remove("open"); });
+});
+
+/* =====================================================
+   초기 실행
+   ===================================================== */
+loadAll();
+render();
+</script>
+</body>
+</html>
